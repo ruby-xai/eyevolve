@@ -1,4 +1,8 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { AutonomyMode, SceneDef, ScoredChange } from "@/lib/types";
+import { selectAutonomousActionPlan } from "@/lib/evolution-narrative";
 import { formatScore } from "@/lib/scoring";
 import { SimulatedCall } from "./SimulatedCall";
 
@@ -14,7 +18,6 @@ type IntelligencePanelProps = {
   actionsPaused: boolean;
   onHoverChange: (changeId: string | null) => void;
   onMoveRank: (changeId: string, direction: -1 | 1) => void;
-  onReorderRank: (sourceId: string, targetId: string) => void;
   onToggleAction: (changeId: string) => void;
   onSubmitHuman: () => void;
   onAcceptAi: () => void;
@@ -34,24 +37,15 @@ const correctionReasons = [
   "Other",
 ];
 
-function ScoreBadges({ change }: { change: ScoredChange }) {
-  return (
-    <div className="score-badges">
-      <span className="score-badge">ATT {formatScore(change.attentionScore)}</span>
-      <span className="score-badge">ACT {formatScore(change.actionScore)}</span>
-      <span className="score-badge">IGN {formatScore(change.ignoreScore)}</span>
-      {change.actionRequired ? <span className="score-badge hazard">ACTION</span> : null}
-      {change.ignored ? <span className="score-badge">SUPPRESSED</span> : null}
-    </div>
-  );
-}
+const IMAGE_READY_DELAY_MS = 5400;
+const CHANGE_SCAN_STEP_MS = 950;
+const ACTION_OVERLAY_DELAY_MS = 1800;
 
 function RankingEditor({
   scores,
   ranking,
   selectedActionIds,
   onMoveRank,
-  onReorderRank,
   onToggleAction,
   onHoverChange,
 }: Pick<
@@ -60,7 +54,6 @@ function RankingEditor({
   | "ranking"
   | "selectedActionIds"
   | "onMoveRank"
-  | "onReorderRank"
   | "onToggleAction"
   | "onHoverChange"
 >) {
@@ -73,22 +66,6 @@ function RankingEditor({
         <article
           className="change-card"
           key={change.id}
-          draggable
-          onDragStart={(event) => {
-            event.dataTransfer.setData("text/plain", change.id);
-            event.dataTransfer.effectAllowed = "move";
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            const sourceId = event.dataTransfer.getData("text/plain");
-            if (sourceId && sourceId !== change.id) {
-              onReorderRank(sourceId, change.id);
-            }
-          }}
           onMouseEnter={() => onHoverChange(change.id)}
           onMouseLeave={() => onHoverChange(null)}
         >
@@ -105,7 +82,7 @@ function RankingEditor({
                 disabled={index === 0}
                 onClick={() => onMoveRank(change.id, -1)}
               >
-                ^
+                ↑
               </button>
               <button
                 className="icon-button"
@@ -113,12 +90,10 @@ function RankingEditor({
                 disabled={index === ranked.length - 1}
                 onClick={() => onMoveRank(change.id, 1)}
               >
-                v
+                ↓
               </button>
             </div>
           </div>
-          <ScoreBadges change={change} />
-          <p className="drag-hint">Drag to reorder, or use the arrow controls.</p>
           <label className="action-select">
             <input
               type="checkbox"
@@ -133,50 +108,68 @@ function RankingEditor({
   );
 }
 
-function AutonomousBrief({
-  scene,
-  actionable,
-  ignored,
-  analyzed,
+function AutonomousScanList({
+  scores,
+  primaryId,
+  imagesReady,
+  scanIndex,
+  primaryStatusLabel,
   onHoverChange,
 }: {
-  scene: SceneDef;
-  actionable: ScoredChange | undefined;
-  ignored: ScoredChange[];
-  analyzed: ScoredChange[];
+  scores: ScoredChange[];
+  primaryId: string | undefined;
+  imagesReady: boolean;
+  scanIndex: number;
+  primaryStatusLabel: string;
   onHoverChange: (changeId: string | null) => void;
 }) {
-  const primary = actionable ?? analyzed[0];
+  if (!imagesReady) {
+    return (
+      <div className="autonomous-scan-wait">
+        <span className="eyebrow">Waiting for imagery</span>
+        <strong>Satellite mosaic is still rendering.</strong>
+        <p>The autonomous review begins after the before/after tiles are fully visible.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="autonomous-brief">
-      <div
-        className="action-hero"
-        onMouseEnter={() => primary && onHoverChange(primary.id)}
-        onMouseLeave={() => onHoverChange(null)}
-      >
-        <span className="eyebrow">Primary exception</span>
-        <strong>{primary?.label ?? "No actionable condition"}</strong>
-        <p>
-          {primary
-            ? primary.description
-            : "EYEVOLVE did not find a condition that warrants dispatch."}
-        </p>
-      </div>
-      <div className="autonomous-stats">
-        <div>
-          <span className="metric-label">Observed</span>
-          <strong>{scene.changes.length}</strong>
-        </div>
-        <div>
-          <span className="metric-label">Suppressed</span>
-          <strong>{ignored.length}</strong>
-        </div>
-        <div>
-          <span className="metric-label">Action</span>
-          <strong>{actionable ? formatScore(actionable.actionScore) : "0"}</strong>
-        </div>
-      </div>
+    <div className="autonomous-scan-list">
+      {scores.map((change, index) => {
+        const processed = index < scanIndex;
+        const isPrimary = change.id === primaryId;
+        const suppressed = processed && !isPrimary;
+        const status = !processed
+          ? "Scanning"
+          : isPrimary
+            ? primaryStatusLabel
+            : change.ignored
+              ? "Suppressed"
+              : "No action";
+
+        return (
+          <article
+            className={[
+              "autonomous-scan-card",
+              processed ? "processed" : "",
+              suppressed ? "suppressed" : "",
+              processed && isPrimary ? "critical" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
+            key={change.id}
+            onMouseEnter={() => onHoverChange(change.id)}
+            onMouseLeave={() => onHoverChange(null)}
+          >
+            <div className="scan-card-topline">
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{status}</strong>
+            </div>
+            <div className="change-name">{change.label}</div>
+            <p className="change-description">{change.description}</p>
+          </article>
+        );
+      })}
     </div>
   );
 }
@@ -208,7 +201,6 @@ function AiPriorityList({
             </div>
             <strong>{formatScore(change.attentionScore)}</strong>
           </div>
-          <ScoreBadges change={change} />
         </article>
       ))}
     </div>
@@ -228,7 +220,6 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
     actionsPaused,
     onHoverChange,
     onMoveRank,
-    onReorderRank,
     onToggleAction,
     onSubmitHuman,
     onAcceptAi,
@@ -241,10 +232,68 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
   const actionable = scores.find((score) => score.actionRequired && !score.ignored);
   const ignored = scores.filter((score) => score.ignored);
   const analyzed = scores.filter((score) => !score.ignored);
+  const [autonomousScanIndex, setAutonomousScanIndex] = useState(0);
+  const [autonomousImagesReady, setAutonomousImagesReady] = useState(false);
+  const [showActionOverlay, setShowActionOverlay] = useState(false);
+  const autonomousPrimary = actionable ?? analyzed[0];
+  const autonomousPrimaryId = autonomousPrimary?.id;
+  const actionPlan = selectAutonomousActionPlan(scene, autonomousPrimary);
+  const scanComplete =
+    autonomousImagesReady && autonomousScanIndex >= scores.length;
+
+  useEffect(() => {
+    if (mode !== "autonomous" && mode !== "exception-management") {
+      setAutonomousScanIndex(0);
+      setAutonomousImagesReady(false);
+      setShowActionOverlay(false);
+      return;
+    }
+
+    const timers: number[] = [];
+    setAutonomousScanIndex(0);
+    setAutonomousImagesReady(false);
+    setShowActionOverlay(false);
+
+    timers.push(
+      window.setTimeout(() => {
+        setAutonomousImagesReady(true);
+      }, IMAGE_READY_DELAY_MS),
+    );
+
+    scores.forEach((_, index) => {
+      timers.push(
+        window.setTimeout(
+          () => {
+            setAutonomousScanIndex(index + 1);
+            if (scores[index]?.id === autonomousPrimaryId) {
+              onHoverChange(scores[index].id);
+            }
+          },
+          IMAGE_READY_DELAY_MS + CHANGE_SCAN_STEP_MS * (index + 1),
+        ),
+      );
+    });
+
+    if (mode === "autonomous") {
+      timers.push(
+        window.setTimeout(
+          () => setShowActionOverlay(true),
+          IMAGE_READY_DELAY_MS +
+            CHANGE_SCAN_STEP_MS * scores.length +
+            ACTION_OVERLAY_DELAY_MS,
+        ),
+      );
+    }
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      onHoverChange(null);
+    };
+  }, [autonomousPrimaryId, mode, onHoverChange, scene.id, scores]);
 
   if (mode === "human") {
     return (
-      <section className="panel">
+      <section className="panel intelligence-panel">
         <div className="panel-title">
           <div>
             <span className="eyebrow">Human training mode</span>
@@ -261,7 +310,6 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
           ranking={ranking}
           selectedActionIds={selectedActionIds}
           onMoveRank={onMoveRank}
-          onReorderRank={onReorderRank}
           onToggleAction={onToggleAction}
           onHoverChange={onHoverChange}
         />
@@ -276,7 +324,7 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
 
   if (isCorrecting) {
     return (
-      <section className="panel">
+      <section className="panel intelligence-panel">
         <div className="panel-title">
           <div>
             <span className="eyebrow">Correction mode</span>
@@ -288,7 +336,6 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
           ranking={ranking}
           selectedActionIds={selectedActionIds}
           onMoveRank={onMoveRank}
-          onReorderRank={onReorderRank}
           onToggleAction={onToggleAction}
           onHoverChange={onHoverChange}
         />
@@ -322,7 +369,7 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
 
   if (mode === "ai-review") {
     return (
-      <section className="panel">
+      <section className="panel intelligence-panel">
         <div className="panel-title">
           <div>
             <span className="eyebrow">AI review mode</span>
@@ -356,7 +403,7 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
 
   if (mode === "exception-management") {
     return (
-      <section className="panel">
+      <section className="panel intelligence-panel">
         <div className="panel-title">
           <div>
             <span className="eyebrow">Exception management</span>
@@ -364,25 +411,37 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
           </div>
           <span className="panel-badge">{ignored.length} suppressed</span>
         </div>
-        <div className="change-card ignored">
-          <strong>{scores.length} changes observed</strong>
-          <p className="change-description">
-            {ignored.length} auto-suppressed:{" "}
-            {ignored.length ? ignored.map((change) => change.label).join(", ") : "none"}
-          </p>
-        </div>
-        <AiPriorityList scores={analyzed} onHoverChange={onHoverChange} showIgnored />
-        <div className="learned-callout">
+        <AutonomousScanList
+          scores={scores}
+          primaryId={autonomousPrimaryId}
+          imagesReady={autonomousImagesReady}
+          scanIndex={autonomousScanIndex}
+          primaryStatusLabel={actionPlan.label}
+          onHoverChange={onHoverChange}
+        />
+        <div className={`learned-callout ${scanComplete ? "" : "pending-scan"}`}>
           <div className="eyebrow">Proposed action</div>
           <strong>
-            {actionable ? actionable.suggestedAction ?? scene.recommendedAction : "Monitor only"}
+            {scanComplete
+              ? actionable
+                ? actionable.suggestedAction ?? scene.recommendedAction
+                : "Monitor only"
+              : "Scanning observed changes..."}
           </strong>
         </div>
         <div className="button-row">
-          <button className="primary-button" disabled={isEvolving} onClick={onAcceptAi}>
+          <button
+            className="primary-button"
+            disabled={isEvolving || !scanComplete}
+            onClick={onAcceptAi}
+          >
             {isEvolving ? "Recording agreement..." : "Confirm judgment"}
           </button>
-          <button className="secondary-button" disabled={isEvolving} onClick={onStartCorrection}>
+          <button
+            className="secondary-button"
+            disabled={isEvolving || !scanComplete}
+            onClick={onStartCorrection}
+          >
             Override
           </button>
         </div>
@@ -391,33 +450,46 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
   }
 
   return (
-    <section className="panel">
-      <div className="panel-title">
-        <div>
-          <span className="eyebrow">Autonomous mode</span>
-          <h2>Autonomous dispatch</h2>
+    <section
+      className={`panel intelligence-panel autonomous-panel ${
+        showActionOverlay ? "action-overlay-open" : ""
+      }`}
+    >
+      <div className="panel-underlay">
+        <div className="panel-title">
+          <div>
+            <span className="eyebrow">Autonomous mode</span>
+            <h2>Autonomous dispatch</h2>
+          </div>
+          <span className="panel-badge">Override available</span>
         </div>
-        <span className="panel-badge">Override available</span>
+        <AutonomousScanList
+          scores={scores}
+          primaryId={autonomousPrimaryId}
+          imagesReady={autonomousImagesReady}
+          scanIndex={autonomousScanIndex}
+          primaryStatusLabel={actionPlan.label}
+          onHoverChange={onHoverChange}
+        />
+        <div className="button-row">
+          <button className="secondary-button" disabled={isEvolving} onClick={onStartCorrection}>
+            Override
+          </button>
+        </div>
       </div>
-      <AutonomousBrief
-        scene={scene}
-        actionable={actionable}
-        ignored={ignored}
-        analyzed={analyzed}
-        onHoverChange={onHoverChange}
-      />
-      <SimulatedCall
-        service={scene.actionService ?? "Service desk"}
-        incident={actionable?.label ?? scene.recommendedAction ?? "an actionable satellite event"}
-        paused={actionsPaused}
-        isEvolving={isEvolving}
-        onCompleteAction={onRecordAutonomousAction}
-      />
-      <div className="button-row">
-        <button className="secondary-button" disabled={isEvolving} onClick={onStartCorrection}>
-          Override
-        </button>
-      </div>
+
+      {showActionOverlay ? (
+        <div className="judgment-action-popup">
+          <SimulatedCall
+            service={scene.actionService ?? "Service desk"}
+            incident={actionable?.label ?? scene.recommendedAction ?? "an actionable satellite event"}
+            plan={actionPlan}
+            paused={actionsPaused}
+            isEvolving={isEvolving}
+            onCompleteAction={onRecordAutonomousAction}
+          />
+        </div>
+      ) : null}
     </section>
   );
 }

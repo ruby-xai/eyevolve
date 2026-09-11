@@ -154,12 +154,35 @@ function Tent({ object }: { object: SceneObject }) {
 function Car({ object }: { object: SceneObject }) {
   const w = object.w ?? 46;
   const h = object.h ?? 23;
-  const fill = object.status === "hazard" ? "#b44b4b" : object.status === "action" ? "#7ea95d" : "#8fa8b3";
+  const isBus = object.variant === "school-bus";
+  const fill = isBus
+    ? "#e3b83d"
+    : object.status === "hazard"
+      ? "#b44b4b"
+      : object.status === "action"
+        ? "#7ea95d"
+        : "#8fa8b3";
   return (
     <g transform={transformFor(object)}>
       <ellipse cx="3" cy={h / 2 + 5} rx={w / 2.2} ry="5" fill="#020405" opacity="0.3" />
       <rect x={-w / 2} y={-h / 2} width={w} height={h} rx="5" fill={fill} stroke="#eef7f5" opacity="0.94" />
-      <rect x={-w / 8} y={-h / 2 + 4} width={w / 3} height={h - 8} rx="3" fill="#152129" opacity="0.7" />
+      <rect
+        x={isBus ? -w / 2 + 9 : -w / 8}
+        y={-h / 2 + 4}
+        width={isBus ? w - 24 : w / 3}
+        height={h - 8}
+        rx="3"
+        fill="#152129"
+        opacity="0.7"
+      />
+      {isBus ? (
+        <path
+          d={`M ${-w / 2 + 8} 0 H ${w / 2 - 8}`}
+          stroke="#11191f"
+          strokeWidth="2"
+          opacity="0.55"
+        />
+      ) : null}
       <path d={`M ${-w / 2 + 6} ${-h / 4} H ${w / 2 - 8}`} stroke="#ffffff" opacity="0.28" />
       <circle cx={-w / 3} cy={h / 2} r="3" fill="#05070a" />
       <circle cx={w / 3} cy={h / 2} r="3" fill="#05070a" />
@@ -283,6 +306,73 @@ function Water({ object }: { object: SceneObject }) {
 function Marker({ object }: { object: SceneObject }) {
   const w = object.w ?? 130;
   const h = object.h ?? 52;
+  if (object.variant === "crosswalk") {
+    return (
+      <g transform={transformFor(object)}>
+        <rect
+          x={-w / 2}
+          y={-h / 2}
+          width={w}
+          height={h}
+          rx="4"
+          fill="rgba(255,255,255,0.08)"
+          stroke="#f5f1d2"
+          strokeWidth="1"
+          opacity="0.85"
+        />
+        {Array.from({ length: 6 }, (_, index) => (
+          <rect
+            key={index}
+            x={-w / 2 + 9 + index * ((w - 18) / 6)}
+            y={-h / 2 + 5}
+            width={(w - 28) / 10}
+            height={h - 10}
+            rx="2"
+            fill="#f5f1d2"
+            opacity="0.86"
+          />
+        ))}
+      </g>
+    );
+  }
+
+  if (object.variant === "school-zone") {
+    return (
+      <g transform={transformFor(object)}>
+        <rect
+          x={-w / 2}
+          y={-h / 2}
+          width={w}
+          height={h}
+          rx="6"
+          fill="#e3b83d"
+          stroke="#4a3b12"
+          opacity="0.88"
+        />
+        <text
+          x="0"
+          y="-3"
+          textAnchor="middle"
+          fontSize="15"
+          fontWeight="800"
+          fill="#18232b"
+        >
+          SCHOOL
+        </text>
+        <text
+          x="0"
+          y="14"
+          textAnchor="middle"
+          fontSize="13"
+          fontWeight="800"
+          fill="#18232b"
+        >
+          XING
+        </text>
+      </g>
+    );
+  }
+
   return (
     <g transform={transformFor(object)}>
       <path

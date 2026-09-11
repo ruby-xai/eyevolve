@@ -11,7 +11,7 @@ export function ObservationWorkspace({
   highlightedObjectIds,
 }: ObservationWorkspaceProps) {
   return (
-    <div>
+    <div className="observation-workspace">
       <div className="panel-title">
         <div>
           <span className="eyebrow">Satellite observation</span>

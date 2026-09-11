@@ -1,125 +1,186 @@
 import { FEATURE_KEYS, type EvolutionEvent } from "@/lib/types";
-import { featureLabel } from "@/lib/scenes";
-import { percent } from "@/lib/scoring";
+import { featureLabel, getScene } from "@/lib/scenes";
+import {
+  beforeNowSentence,
+  knownAndUnsure,
+  latestCapabilityUnlock,
+  selectAutonomousActionPlan,
+  unlockedCapabilities,
+} from "@/lib/evolution-narrative";
+import { scoreScene } from "@/lib/scoring";
 
 type EvolutionTransitionProps = {
   event: EvolutionEvent;
   onContinue: () => void;
 };
 
-function DeltaRow({
-  label,
-  before,
-  after,
-}: {
-  label: string;
-  before: number;
-  after: number;
-}) {
-  const moved = Math.abs(after - before) >= 0.005;
-  return (
-    <div className="diff-row">
-      <span>{label}</span>
-      <strong>
-        {percent(before)} -&gt; {percent(after)}
-        {moved ? ` (${after > before ? "+" : ""}${Math.round((after - before) * 100)} pts)` : ""}
-      </strong>
-    </div>
-  );
-}
+const sentenceJoin = (items: string[]) => {
+  if (items.length <= 1) {
+    return items[0] ?? "the next signal";
+  }
+  return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+};
+
+const plainAction = (required: boolean, suggestedAction?: string) => {
+  if (required && suggestedAction) {
+    return suggestedAction;
+  }
+  if (required) {
+    return "Escalate for human response";
+  }
+  return "Watch without dispatch";
+};
 
 export function EvolutionTransition({
   event,
   onContinue,
 }: EvolutionTransitionProps) {
-  const changedAttention = FEATURE_KEYS.filter(
-    (key) =>
-      Math.abs(
-        event.after.attentionWeights[key] - event.before.attentionWeights[key],
-      ) >= 0.005,
-  ).slice(0, 5);
-  const changedAction = FEATURE_KEYS.filter(
-    (key) =>
-      Math.abs(event.after.actionWeights[key] - event.before.actionWeights[key]) >=
-      0.005,
-  ).slice(0, 5);
+  const scene = getScene(event.sceneId);
+  const beforeScored = scoreScene(scene, event.before);
+  const scored = scoreScene(scene, event.after);
+  const beforePrimary =
+    beforeScored.find((change) => change.actionRequired && !change.ignored) ??
+    beforeScored[0];
+  const primary =
+    scored.find((change) => change.actionRequired && !change.ignored) ?? scored[0];
+  const actionPlan = selectAutonomousActionPlan(scene, primary);
+  const beforeNow = beforeNowSentence(beforePrimary, primary);
+  const knowledge = knownAndUnsure(event.after);
+  const unlocked = unlockedCapabilities(event.after.generation);
+  const latestUnlock = latestCapabilityUnlock(
+    event.before.generation,
+    event.after.generation,
+  );
+  const background = scored
+    .filter((change) => change.id !== primary?.id)
+    .filter((change) => change.ignored || change.noiseCandidate || change.actionScore < event.after.actionThreshold)
+    .slice(0, 3);
+  const watchOnly = scored
+    .filter((change) => change.id !== primary?.id)
+    .filter((change) => !background.some((item) => item.id === change.id))
+    .slice(0, 2);
+  const uncertainDimensions = FEATURE_KEYS.filter((key) => key !== "visualNoise")
+    .sort(
+      (a, b) =>
+        event.after.uncertaintyByDimension[b] -
+        event.after.uncertaintyByDimension[a],
+    )
+    .slice(0, 2)
+    .map((key) => featureLabel(key).toLowerCase());
 
   return (
     <div className="transition-overlay" role="dialog" aria-modal="true">
-      <div className="transition-card">
+      <div className="transition-card simple">
         <span className="eyebrow">Generation complete</span>
-        <h2>Policy evolved after {event.sceneTitle}</h2>
-        <p className="mode-copy">
-          {event.after.judgmentsObserved} human/AI judgments observed. Evolution
-          driver: {event.engine === "openai" ? "AI-driven policy" : "Local policy engine"}.
+        <h2>What EYEVOLVE understood</h2>
+        <p className="transition-lede">
+          From {event.sceneTitle}, it learned which changes deserve action and
+          which should stay in the background.
         </p>
 
-        <div className="transition-grid">
-          <section className="panel">
-            <div className="panel-title">
-              <h3>Attention</h3>
+        <div className="learning-takeaway-grid">
+          <section className="learning-takeaway-card primary">
+            <span className="eyebrow">Most important signal</span>
+            <strong>{primary?.label ?? "No urgent signal"}</strong>
+            <p>
+              {primary?.description ??
+                "EYEVOLVE did not identify a change that clearly warranted action."}
+            </p>
+            <div className="takeaway-action">
+              {actionPlan.label}:{" "}
+              {plainAction(Boolean(primary?.actionRequired), primary?.suggestedAction ?? scene.recommendedAction)}
             </div>
-            {(changedAttention.length ? changedAttention : FEATURE_KEYS.slice(0, 3)).map((key) => (
-              <DeltaRow
-                key={key}
-                label={featureLabel(key)}
-                before={event.before.attentionWeights[key]}
-                after={event.after.attentionWeights[key]}
-              />
-            ))}
           </section>
 
-          <section className="panel">
-            <div className="panel-title">
-              <h3>Action</h3>
+          <section className="learning-takeaway-card evolution-shift-card">
+            <span className="eyebrow">Used to think / now thinks</span>
+            <div className="before-now-row">
+              <span>Before</span>
+              <strong>{beforeNow.before.replace(/^Before:\s*/i, "")}</strong>
             </div>
-            {(changedAction.length ? changedAction : FEATURE_KEYS.slice(0, 3)).map((key) => (
-              <DeltaRow
-                key={key}
-                label={featureLabel(key)}
-                before={event.before.actionWeights[key]}
-                after={event.after.actionWeights[key]}
-              />
-            ))}
+            <div className="before-now-row now">
+              <span>Now</span>
+              <strong>{beforeNow.now.replace(/^Now:\s*/i, "")}</strong>
+            </div>
           </section>
 
-          <section className="panel">
-            <div className="panel-title">
-              <h3>Model</h3>
-            </div>
-            <DeltaRow
-              label="Confidence"
-              before={event.before.confidence}
-              after={event.after.confidence}
-            />
-            <DeltaRow
-              label="Autonomy"
-              before={event.before.autonomy}
-              after={event.after.autonomy}
-            />
-            <DeltaRow
-              label="Action threshold"
-              before={event.before.actionThreshold}
-              after={event.after.actionThreshold}
-            />
+          <section className="learning-takeaway-card">
+            <span className="eyebrow">Capability unlocked</span>
+            {latestUnlock ? (
+              <>
+                <strong>{latestUnlock.title}</strong>
+                <p>{latestUnlock.description}</p>
+              </>
+            ) : (
+              <>
+                <strong>
+                  {unlocked.at(-1)?.title ?? "Human-guided learning"}
+                </strong>
+                <p>
+                  {unlocked.at(-1)?.description ??
+                    "EYEVOLVE is still collecting enough examples to unlock autonomous behavior."}
+                </p>
+              </>
+            )}
           </section>
 
-          <section className="panel">
-            <div className="panel-title">
-              <h3>Next observation</h3>
-            </div>
-            <p className="change-description">{event.reasoningSummary}</p>
-            {event.nextLearningObjective ? (
-              <p className="change-description">
-                Learning objective: {event.nextLearningObjective}
+          <section className="learning-takeaway-card">
+            <span className="eyebrow">Not critical here</span>
+            {background.length ? (
+              <ul className="takeaway-list">
+                {background.map((change) => (
+                  <li key={change.id}>
+                    <strong>{change.label}</strong>
+                    <span>{change.noiseCandidate || change.ignored ? "Background change" : "No dispatch needed"}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No detected change was safe to suppress in this observation.</p>
+            )}
+          </section>
+
+          <section className="learning-takeaway-card">
+            <span className="eyebrow">Keep watching</span>
+            {watchOnly.length ? (
+              <ul className="takeaway-list">
+                {watchOnly.map((change) => (
+                  <li key={change.id}>
+                    <strong>{change.label}</strong>
+                    <span>Relevant, but not enough for action yet</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>
+                EYEVOLVE is still least certain about{" "}
+                {sentenceJoin(uncertainDimensions)}.
               </p>
-            ) : null}
+            )}
           </section>
-        </div>
 
-        <div className="learned-callout">
-          <div className="eyebrow">Learned</div>
-          <strong>{event.learnedRule}</strong>
+          <section className="learning-takeaway-card">
+            <span className="eyebrow">Understands / still learning</span>
+            <div className="knowledge-list">
+              <div>
+                <span>Understands</span>
+                <strong>{sentenceJoin(knowledge.known)}</strong>
+              </div>
+              <div>
+                <span>Still learning</span>
+                <strong>{sentenceJoin(knowledge.unsure)}</strong>
+              </div>
+            </div>
+            <p className="muted-copy">
+              Next it will test {sentenceJoin(uncertainDimensions)} against a new
+              scene.
+            </p>
+          </section>
+
+          <section className="learning-takeaway-card primary">
+            <span className="eyebrow">Rule carried forward</span>
+            <strong>{event.learnedRule}</strong>
+          </section>
         </div>
 
         <div className="button-row">
