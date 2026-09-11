@@ -26,16 +26,16 @@ export function TileReveal({ sceneId, phase }: TileRevealProps) {
 
     const tileTimer = window.setInterval(() => {
       setRevealed((current) => {
-        const next = Math.min(TOTAL_TILES, current + 2);
+        const next = Math.min(TOTAL_TILES, current + 1);
         if (next >= TOTAL_TILES) {
           window.clearInterval(tileTimer);
           setStatus("MOSAIC ASSEMBLED");
-          window.setTimeout(() => setStatus("ANALYZING DELTA"), 340);
-          window.setTimeout(() => setStatus(""), 900);
+          window.setTimeout(() => setStatus("ANALYZING DELTA"), 650);
+          window.setTimeout(() => setStatus(""), 1450);
         }
         return next;
       });
-    }, phase === "after" ? 58 : 42);
+    }, phase === "after" ? 110 : 95);
 
     return () => window.clearInterval(tileTimer);
   }, [sceneId, phase]);

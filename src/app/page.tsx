@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ActivityTrace } from "@/components/ActivityTrace";
 import { EvolutionHistory } from "@/components/EvolutionHistory";
 import { EvolutionTransition } from "@/components/EvolutionTransition";
 import { IntelligencePanel } from "@/components/IntelligencePanel";
 import { MissionHeader } from "@/components/MissionHeader";
 import { ObservationWorkspace } from "@/components/ObservationWorkspace";
-import { PolicyInspector } from "@/components/PolicyInspector";
 import { getScene } from "@/lib/scenes";
 import { calculateAutonomy, modeFromAutonomy } from "@/lib/autonomy";
 import {
@@ -126,11 +124,17 @@ export default function Home() {
   const [transitionEvent, setTransitionEvent] = useState<EvolutionEvent | null>(
     null,
   );
-  const [engineLabel, setEngineLabel] = useState("LOCAL EVOLUTION ENGINE");
+  const [pendingState, setPendingState] = useState<EyevolveState | null>(null);
+  const [activeTab, setActiveTab] = useState<"action" | "log">("action");
+  const [engineLabel, setEngineLabel] = useState("LOCAL POLICY ENGINE");
 
   useEffect(() => {
     const loaded = loadState();
+    const latestEngine = loaded.evolutionHistory.at(-1)?.engine;
     setState(loaded);
+    setEngineLabel(
+      latestEngine === "openai" ? "AI-DRIVEN POLICY" : "LOCAL POLICY ENGINE",
+    );
     setHydrated(true);
   }, []);
 
@@ -186,8 +190,10 @@ export default function Home() {
     clearState();
     const fresh = createInitialState();
     setState(fresh);
+    setPendingState(null);
     setTransitionEvent(null);
-    setEngineLabel("LOCAL EVOLUTION ENGINE");
+    setActiveTab("action");
+    setEngineLabel("LOCAL POLICY ENGINE");
   };
 
   const summarizeEvent = (
@@ -300,23 +306,34 @@ export default function Home() {
       createdAt: new Date().toISOString(),
     };
 
-    setState((current) => ({
-      ...current,
+    const nextState: EyevolveState = {
+      ...state,
       policy: advancedPolicy,
       currentSceneId: nextScene.id,
       seenSceneIds,
-      interactionHistory: [...current.interactionHistory, interaction],
-      evolutionHistory: [...current.evolutionHistory, event],
+      interactionHistory: [...state.interactionHistory, interaction],
+      evolutionHistory: [...state.evolutionHistory, event],
       currentMode: nextMode,
-    }));
+    };
+
+    setPendingState(nextState);
     setTransitionEvent(event);
     setEngineLabel(
       response.engine === "openai"
-        ? "AI-ASSISTED EVOLUTION"
-        : "LOCAL EVOLUTION ENGINE",
+        ? "AI-DRIVEN POLICY"
+        : "LOCAL POLICY ENGINE",
     );
     setIsCorrecting(false);
     setIsEvolving(false);
+  };
+
+  const continueToNextObservation = () => {
+    if (pendingState) {
+      setState(pendingState);
+      setPendingState(null);
+    }
+    setTransitionEvent(null);
+    setActiveTab("action");
   };
 
   const acceptAi = () => {
@@ -348,62 +365,82 @@ export default function Home() {
       />
 
       <section className="workspace">
-        <ObservationWorkspace
-          scene={scene}
-          highlightedObjectIds={highlightedObjectIds}
-        />
-        <aside className="side-stack">
-          <IntelligencePanel
+        <div className="observation-pane">
+          <ObservationWorkspace
             scene={scene}
-            mode={state.currentMode}
-            scores={scores}
-            ranking={ranking}
-            selectedActionIds={selectedActionIds}
-            isCorrecting={isCorrecting}
-            correctionReason={correctionReason}
-            isEvolving={isEvolving}
-            onHoverChange={setHoveredChangeId}
-            onMoveRank={moveRank}
-            onToggleAction={toggleAction}
-            onSubmitHuman={() =>
-              void completeEvolution("human-training", ranking, selectedActionIds)
-            }
-            onAcceptAi={acceptAi}
-            onStartCorrection={startCorrection}
-            onCancelCorrection={() => setIsCorrecting(false)}
-            onCorrectionReasonChange={setCorrectionReason}
-            onSubmitCorrection={() =>
-              void completeEvolution(
-                "ai-correction",
-                ranking,
-                selectedActionIds,
-                correctionReason,
-              )
-            }
-            onRecordAutonomousAction={() =>
-              void completeEvolution(
-                "autonomous-action",
-                scores.map((score) => score.id),
-                scores
-                  .filter((score) => score.actionRequired && !score.ignored)
-                  .map((score) => score.id),
-              )
-            }
+            highlightedObjectIds={highlightedObjectIds}
           />
-          <ActivityTrace
-            mode={state.currentMode}
-            scores={scores}
-            isEvolving={isEvolving}
-          />
-          <PolicyInspector policy={state.policy} />
-          <EvolutionHistory events={state.evolutionHistory} />
+        </div>
+
+        <aside className="decision-pane">
+          <div className="workspace-tabs" role="tablist" aria-label="Workspace views">
+            <button
+              className={activeTab === "action" ? "active" : ""}
+              onClick={() => setActiveTab("action")}
+              role="tab"
+              aria-selected={activeTab === "action"}
+            >
+              Judgment
+            </button>
+            <button
+              className={activeTab === "log" ? "active" : ""}
+              onClick={() => setActiveTab("log")}
+              role="tab"
+              aria-selected={activeTab === "log"}
+            >
+              Evolution log
+            </button>
+          </div>
+
+          {activeTab === "action" ? (
+            <IntelligencePanel
+              scene={scene}
+              mode={state.currentMode}
+              scores={scores}
+              ranking={ranking}
+              selectedActionIds={selectedActionIds}
+              isCorrecting={isCorrecting}
+              correctionReason={correctionReason}
+              isEvolving={isEvolving}
+              actionsPaused={Boolean(transitionEvent)}
+              onHoverChange={setHoveredChangeId}
+              onMoveRank={moveRank}
+              onToggleAction={toggleAction}
+              onSubmitHuman={() =>
+                void completeEvolution("human-training", ranking, selectedActionIds)
+              }
+              onAcceptAi={acceptAi}
+              onStartCorrection={startCorrection}
+              onCancelCorrection={() => setIsCorrecting(false)}
+              onCorrectionReasonChange={setCorrectionReason}
+              onSubmitCorrection={() =>
+                void completeEvolution(
+                  "ai-correction",
+                  ranking,
+                  selectedActionIds,
+                  correctionReason,
+                )
+              }
+              onRecordAutonomousAction={() =>
+                void completeEvolution(
+                  "autonomous-action",
+                  scores.map((score) => score.id),
+                  scores
+                    .filter((score) => score.actionRequired && !score.ignored)
+                    .map((score) => score.id),
+                )
+              }
+            />
+          ) : (
+            <EvolutionHistory events={state.evolutionHistory} />
+          )}
         </aside>
       </section>
 
       {transitionEvent ? (
         <EvolutionTransition
           event={transitionEvent}
-          onContinue={() => setTransitionEvent(null)}
+          onContinue={continueToNextObservation}
         />
       ) : null}
     </main>
