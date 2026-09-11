@@ -11,8 +11,10 @@ type IntelligencePanelProps = {
   isCorrecting: boolean;
   correctionReason: string;
   isEvolving: boolean;
+  actionsPaused: boolean;
   onHoverChange: (changeId: string | null) => void;
   onMoveRank: (changeId: string, direction: -1 | 1) => void;
+  onReorderRank: (sourceId: string, targetId: string) => void;
   onToggleAction: (changeId: string) => void;
   onSubmitHuman: () => void;
   onAcceptAi: () => void;
@@ -49,6 +51,7 @@ function RankingEditor({
   ranking,
   selectedActionIds,
   onMoveRank,
+  onReorderRank,
   onToggleAction,
   onHoverChange,
 }: Pick<
@@ -57,6 +60,7 @@ function RankingEditor({
   | "ranking"
   | "selectedActionIds"
   | "onMoveRank"
+  | "onReorderRank"
   | "onToggleAction"
   | "onHoverChange"
 >) {
@@ -69,6 +73,22 @@ function RankingEditor({
         <article
           className="change-card"
           key={change.id}
+          draggable
+          onDragStart={(event) => {
+            event.dataTransfer.setData("text/plain", change.id);
+            event.dataTransfer.effectAllowed = "move";
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            const sourceId = event.dataTransfer.getData("text/plain");
+            if (sourceId && sourceId !== change.id) {
+              onReorderRank(sourceId, change.id);
+            }
+          }}
           onMouseEnter={() => onHoverChange(change.id)}
           onMouseLeave={() => onHoverChange(null)}
         >
@@ -98,6 +118,7 @@ function RankingEditor({
             </div>
           </div>
           <ScoreBadges change={change} />
+          <p className="drag-hint">Drag to reorder, or use the arrow controls.</p>
           <label className="action-select">
             <input
               type="checkbox"
@@ -108,6 +129,54 @@ function RankingEditor({
           </label>
         </article>
       ))}
+    </div>
+  );
+}
+
+function AutonomousBrief({
+  scene,
+  actionable,
+  ignored,
+  analyzed,
+  onHoverChange,
+}: {
+  scene: SceneDef;
+  actionable: ScoredChange | undefined;
+  ignored: ScoredChange[];
+  analyzed: ScoredChange[];
+  onHoverChange: (changeId: string | null) => void;
+}) {
+  const primary = actionable ?? analyzed[0];
+
+  return (
+    <div className="autonomous-brief">
+      <div
+        className="action-hero"
+        onMouseEnter={() => primary && onHoverChange(primary.id)}
+        onMouseLeave={() => onHoverChange(null)}
+      >
+        <span className="eyebrow">Primary exception</span>
+        <strong>{primary?.label ?? "No actionable condition"}</strong>
+        <p>
+          {primary
+            ? primary.description
+            : "EYEVOLVE did not find a condition that warrants dispatch."}
+        </p>
+      </div>
+      <div className="autonomous-stats">
+        <div>
+          <span className="metric-label">Observed</span>
+          <strong>{scene.changes.length}</strong>
+        </div>
+        <div>
+          <span className="metric-label">Suppressed</span>
+          <strong>{ignored.length}</strong>
+        </div>
+        <div>
+          <span className="metric-label">Action</span>
+          <strong>{actionable ? formatScore(actionable.actionScore) : "0"}</strong>
+        </div>
+      </div>
     </div>
   );
 }
@@ -156,8 +225,10 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
     isCorrecting,
     correctionReason,
     isEvolving,
+    actionsPaused,
     onHoverChange,
     onMoveRank,
+    onReorderRank,
     onToggleAction,
     onSubmitHuman,
     onAcceptAi,
@@ -190,6 +261,7 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
           ranking={ranking}
           selectedActionIds={selectedActionIds}
           onMoveRank={onMoveRank}
+          onReorderRank={onReorderRank}
           onToggleAction={onToggleAction}
           onHoverChange={onHoverChange}
         />
@@ -216,6 +288,7 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
           ranking={ranking}
           selectedActionIds={selectedActionIds}
           onMoveRank={onMoveRank}
+          onReorderRank={onReorderRank}
           onToggleAction={onToggleAction}
           onHoverChange={onHoverChange}
         />
@@ -322,23 +395,25 @@ export function IntelligencePanel(props: IntelligencePanelProps) {
       <div className="panel-title">
         <div>
           <span className="eyebrow">Autonomous mode</span>
-          <h2>EYEVOLVE acts</h2>
+          <h2>Autonomous dispatch</h2>
         </div>
         <span className="panel-badge">Override available</span>
       </div>
-      <AiPriorityList scores={scores} onHoverChange={onHoverChange} showIgnored={false} />
+      <AutonomousBrief
+        scene={scene}
+        actionable={actionable}
+        ignored={ignored}
+        analyzed={analyzed}
+        onHoverChange={onHoverChange}
+      />
       <SimulatedCall
         service={scene.actionService ?? "Service desk"}
         incident={actionable?.label ?? scene.recommendedAction ?? "an actionable satellite event"}
+        paused={actionsPaused}
+        isEvolving={isEvolving}
+        onCompleteAction={onRecordAutonomousAction}
       />
       <div className="button-row">
-        <button
-          className="primary-button"
-          disabled={isEvolving}
-          onClick={onRecordAutonomousAction}
-        >
-          {isEvolving ? "Persisting action..." : "Record action complete"}
-        </button>
         <button className="secondary-button" disabled={isEvolving} onClick={onStartCorrection}>
           Override
         </button>

@@ -45,14 +45,43 @@ function Road({ object }: { object: SceneObject }) {
   const h = object.h ?? 70;
   return (
     <g transform={transformFor(object)}>
-      <rect x={-w / 2} y={-h / 2} width={w} height={h} rx="12" fill="#222b31" />
-      <rect x={-w / 2} y="-2" width={w} height="4" fill="#d9e7e1" opacity="0.45" />
+      <rect
+        x={-w / 2}
+        y={-h / 2}
+        width={w}
+        height={h}
+        rx="14"
+        fill="url(#road-fill)"
+        stroke="#3e4c54"
+      />
+      <rect
+        x={-w / 2}
+        y={-h / 2 + 5}
+        width={w}
+        height="4"
+        fill="#11191f"
+        opacity="0.42"
+      />
+      <rect
+        x={-w / 2}
+        y={h / 2 - 9}
+        width={w}
+        height="4"
+        fill="#11191f"
+        opacity="0.42"
+      />
       <path
         d={`M ${-w / 2 + 24} 0 H ${w / 2 - 24}`}
         stroke="#eef7f5"
         strokeWidth="2"
         strokeDasharray="18 16"
         opacity="0.55"
+      />
+      <path
+        d={`M ${-w / 2 + 18} ${-h / 2 + 1} H ${w / 2 - 18}`}
+        stroke="#44d9e6"
+        strokeWidth="1"
+        opacity="0.18"
       />
     </g>
   );
@@ -65,10 +94,17 @@ function River({ object }: { object: SceneObject }) {
     <g transform={transformFor(object)}>
       <path
         d={`M ${-w / 2} ${-h / 2} C ${w / 3} ${-h / 3}, ${-w / 3} ${-h / 8}, ${w / 4} 0 C ${w / 2} ${h / 5}, ${-w / 2} ${h / 3}, ${w / 3} ${h / 2} L ${-w / 2} ${h / 2} C ${-w / 6} ${h / 3}, ${-w / 2} ${h / 5}, ${-w / 4} 0 C ${w / 8} ${-h / 4}, ${-w / 2} ${-h / 3}, ${-w / 2} ${-h / 2} Z`}
-        fill={object.status === "hazard" ? "#236b7b" : "#174857"}
+        fill={object.status === "hazard" ? "url(#water-hazard)" : "url(#water-fill)"}
         stroke="#44d9e6"
         strokeWidth="2"
         opacity="0.92"
+      />
+      <path
+        d={`M ${-w / 3} ${-h / 3} C ${w / 6} ${-h / 5}, ${-w / 5} ${h / 6}, ${w / 4} ${h / 3}`}
+        fill="none"
+        stroke="#b9f7ff"
+        strokeWidth="2"
+        opacity="0.22"
       />
     </g>
   );
@@ -79,9 +115,11 @@ function Building({ object }: { object: SceneObject }) {
   const h = object.h ?? 58;
   return (
     <g transform={transformFor(object)}>
-      <rect x={-w / 2} y={-h / 2} width={w} height={h} rx="6" fill="#41505a" stroke="#9bb7c5" />
-      <path d={`M ${-w / 2} ${-h / 4} H ${w / 2}`} stroke="#eef7f5" opacity="0.24" />
-      <path d={`M ${-w / 4} ${-h / 2} V ${h / 2}`} stroke="#eef7f5" opacity="0.2" />
+      <rect x={-w / 2} y={-h / 2} width={w} height={h} rx="7" fill="url(#roof-fill)" stroke="#9bb7c5" />
+      <rect x={-w / 2 + 8} y={-h / 2 + 8} width={w - 16} height={h - 16} rx="4" fill="none" stroke="#eef7f5" opacity="0.16" />
+      <path d={`M ${-w / 2} ${-h / 4} H ${w / 2}`} stroke="#eef7f5" opacity="0.22" />
+      <path d={`M ${-w / 4} ${-h / 2} V ${h / 2}`} stroke="#eef7f5" opacity="0.18" />
+      <circle cx={w / 3} cy={-h / 4} r="4" fill="#44d9e6" opacity="0.45" />
     </g>
   );
 }
@@ -92,7 +130,10 @@ function Tree({ object }: { object: SceneObject }) {
   const fill = object.status === "hazard" ? "#7b4d33" : "#1e6a4b";
   return (
     <g transform={transformFor(object)}>
-      <ellipse cx="0" cy="-6" rx={w / 2} ry={h / 2.4} fill={fill} stroke="#62e68f" opacity="0.9" />
+      <ellipse cx="5" cy="8" rx={w / 2.4} ry={h / 3.2} fill="#020405" opacity="0.22" />
+      <circle cx="-8" cy="-6" r={w / 3.2} fill={fill} stroke="#62e68f" opacity="0.92" />
+      <circle cx="8" cy="-8" r={w / 3.5} fill={fill} stroke="#62e68f" opacity="0.86" />
+      <circle cx="0" cy="4" r={w / 2.8} fill={fill} opacity="0.9" />
       <rect x="-4" y="10" width="8" height={h / 2.5} fill="#77563e" rx="2" />
     </g>
   );
@@ -104,6 +145,7 @@ function Tent({ object }: { object: SceneObject }) {
   return (
     <g transform={transformFor(object)}>
       <path d={`M ${-w / 2} ${h / 2} L 0 ${-h / 2} L ${w / 2} ${h / 2} Z`} fill="#326d7d" stroke="#44d9e6" />
+      <path d={`M ${-w / 2 + 8} ${h / 2 - 2} L 0 ${-h / 2 + 8} L ${w / 2 - 8} ${h / 2 - 2}`} fill="none" stroke="#b9f7ff" opacity="0.32" />
       <path d={`M 0 ${-h / 2} V ${h / 2}`} stroke="#eef7f5" opacity="0.5" />
     </g>
   );
@@ -115,8 +157,10 @@ function Car({ object }: { object: SceneObject }) {
   const fill = object.status === "hazard" ? "#b44b4b" : object.status === "action" ? "#7ea95d" : "#8fa8b3";
   return (
     <g transform={transformFor(object)}>
+      <ellipse cx="3" cy={h / 2 + 5} rx={w / 2.2} ry="5" fill="#020405" opacity="0.3" />
       <rect x={-w / 2} y={-h / 2} width={w} height={h} rx="5" fill={fill} stroke="#eef7f5" opacity="0.94" />
       <rect x={-w / 8} y={-h / 2 + 4} width={w / 3} height={h - 8} rx="3" fill="#152129" opacity="0.7" />
+      <path d={`M ${-w / 2 + 6} ${-h / 4} H ${w / 2 - 8}`} stroke="#ffffff" opacity="0.28" />
       <circle cx={-w / 3} cy={h / 2} r="3" fill="#05070a" />
       <circle cx={w / 3} cy={h / 2} r="3" fill="#05070a" />
     </g>
@@ -127,10 +171,11 @@ function Cloud({ object }: { object: SceneObject }) {
   const w = object.w ?? 96;
   const h = object.h ?? 46;
   return (
-    <g transform={transformFor(object)} opacity="0.56">
-      <ellipse cx={-w / 5} cy="0" rx={w / 3} ry={h / 2.5} fill="#d7e8ec" />
-      <ellipse cx={w / 8} cy="-6" rx={w / 3.2} ry={h / 2.2} fill="#d7e8ec" />
-      <ellipse cx={w / 3} cy="4" rx={w / 3.5} ry={h / 2.8} fill="#d7e8ec" />
+    <g transform={transformFor(object)} opacity="0.5">
+      <ellipse cx={-w / 5} cy="0" rx={w / 3} ry={h / 2.5} fill="url(#cloud-fill)" />
+      <ellipse cx={w / 8} cy="-6" rx={w / 3.2} ry={h / 2.2} fill="url(#cloud-fill)" />
+      <ellipse cx={w / 3} cy="4" rx={w / 3.5} ry={h / 2.8} fill="url(#cloud-fill)" />
+      <path d={`M ${-w / 2.4} ${h / 4} H ${w / 2.2}`} stroke="#ffffff" opacity="0.28" />
     </g>
   );
 }
@@ -139,7 +184,7 @@ function Fire({ object }: { object: SceneObject }) {
   const w = object.w ?? 38;
   const h = object.h ?? 48;
   return (
-    <g transform={transformFor(object)}>
+    <g transform={transformFor(object)} filter="url(#hazard-glow)">
       <path
         d={`M 0 ${-h / 2} C ${w / 2} ${-h / 6}, ${w / 4} ${h / 2}, 0 ${h / 2} C ${-w / 3} ${h / 3}, ${-w / 2} 0, 0 ${-h / 2} Z`}
         fill="#ff5e5e"
@@ -293,6 +338,32 @@ export function SceneRenderer({
   return (
     <svg viewBox="0 0 640 420" role="img" aria-label="Satellite interpretation scene">
       <defs>
+        <linearGradient id="terrain-fill" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor="#09151a" />
+          <stop offset="54%" stopColor="#0d1917" />
+          <stop offset="100%" stopColor="#111720" />
+        </linearGradient>
+        <linearGradient id="road-fill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#354047" />
+          <stop offset="52%" stopColor="#20292f" />
+          <stop offset="100%" stopColor="#151d22" />
+        </linearGradient>
+        <linearGradient id="water-fill" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor="#123642" />
+          <stop offset="100%" stopColor="#1f6375" />
+        </linearGradient>
+        <linearGradient id="water-hazard" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor="#1b5260" />
+          <stop offset="100%" stopColor="#2a8792" />
+        </linearGradient>
+        <linearGradient id="roof-fill" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor="#5c6a71" />
+          <stop offset="100%" stopColor="#303c44" />
+        </linearGradient>
+        <radialGradient id="cloud-fill">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#a7b7bc" />
+        </radialGradient>
         <filter id="soft-glow">
           <feGaussianBlur stdDeviation="3" result="blur" />
           <feMerge>
@@ -300,8 +371,35 @@ export function SceneRenderer({
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
+        <filter id="hazard-glow">
+          <feGaussianBlur stdDeviation="2.4" result="blur" />
+          <feColorMatrix
+            in="blur"
+            type="matrix"
+            values="1 0 0 0 0.8  0 0.45 0 0 0.14  0 0 0.1 0 0.03  0 0 0 0.75 0"
+            result="glow"
+          />
+          <feMerge>
+            <feMergeNode in="glow" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
-      <rect width="640" height="420" fill="#091015" />
+      <rect width="640" height="420" fill="url(#terrain-fill)" />
+      <path
+        d="M 0 86 C 110 62, 142 124, 248 92 C 358 58, 420 112, 640 68"
+        stroke="#62e68f"
+        strokeWidth="22"
+        opacity="0.04"
+        fill="none"
+      />
+      <path
+        d="M 0 360 C 118 312, 210 390, 340 338 C 456 292, 510 348, 640 314"
+        stroke="#44d9e6"
+        strokeWidth="18"
+        opacity="0.035"
+        fill="none"
+      />
       <g opacity="0.18">
         {Array.from({ length: 14 }, (_, index) => (
           <path key={`h-${index}`} d={`M 0 ${index * 32} H 640`} stroke="#44d9e6" />

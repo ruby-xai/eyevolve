@@ -174,6 +174,21 @@ export default function Home() {
     });
   };
 
+  const reorderRank = (sourceId: string, targetId: string) => {
+    setRanking((current) => {
+      const sourceIndex = current.indexOf(sourceId);
+      const targetIndex = current.indexOf(targetId);
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+        return current;
+      }
+
+      const next = [...current];
+      const [item] = next.splice(sourceIndex, 1);
+      next.splice(targetIndex, 0, item);
+      return next;
+    });
+  };
+
   const toggleAction = (changeId: string) => {
     setSelectedActionIds((current) =>
       current.includes(changeId)
@@ -362,8 +377,10 @@ export default function Home() {
             isCorrecting={isCorrecting}
             correctionReason={correctionReason}
             isEvolving={isEvolving}
+            actionsPaused={Boolean(transitionEvent)}
             onHoverChange={setHoveredChangeId}
             onMoveRank={moveRank}
+            onReorderRank={reorderRank}
             onToggleAction={toggleAction}
             onSubmitHuman={() =>
               void completeEvolution("human-training", ranking, selectedActionIds)

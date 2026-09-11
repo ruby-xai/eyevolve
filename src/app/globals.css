@@ -311,6 +311,14 @@ button:disabled {
   background: rgba(255, 255, 255, 0.035);
 }
 
+.change-card[draggable="true"] {
+  cursor: grab;
+}
+
+.change-card[draggable="true"]:active {
+  cursor: grabbing;
+}
+
 .change-card.active,
 .change-card:hover {
   border-color: var(--line-strong);
@@ -365,6 +373,15 @@ button:disabled {
   font-family:
     "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.68rem;
+}
+
+.drag-hint {
+  margin: 8px 0 0;
+  color: var(--dim);
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.68rem;
+  text-transform: uppercase;
 }
 
 .hazard {
@@ -527,9 +544,160 @@ button:disabled {
   background: rgba(168, 255, 99, 0.06);
 }
 
+.autonomous-brief {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.action-hero {
+  border: 1px solid rgba(255, 94, 94, 0.35);
+  border-radius: 8px;
+  padding: 14px;
+  background:
+    linear-gradient(135deg, rgba(255, 94, 94, 0.12), rgba(246, 183, 86, 0.04)),
+    rgba(255, 255, 255, 0.035);
+}
+
+.action-hero strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 1.05rem;
+}
+
+.action-hero p,
+.action-complete-banner p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.autonomous-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.autonomous-stats > div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.autonomous-stats strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--cyan);
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.dispatch-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(68, 217, 230, 0.28);
+  border-radius: 8px;
+  padding: 12px;
+  background:
+    linear-gradient(180deg, rgba(68, 217, 230, 0.08), rgba(255, 255, 255, 0.025)),
+    rgba(3, 8, 12, 0.42);
+}
+
+.dispatch-head,
+.dispatch-route,
+.action-complete-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dispatch-head h3 {
+  margin: 3px 0 0;
+  font-size: 0.98rem;
+  text-transform: uppercase;
+}
+
+.dispatch-state {
+  border: 1px solid rgba(246, 183, 86, 0.45);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: var(--amber);
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.dispatch-state.complete {
+  border-color: rgba(168, 255, 99, 0.45);
+  color: var(--lime);
+}
+
+.dispatch-route {
+  color: var(--muted);
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.route-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--cyan), rgba(168, 255, 99, 0.4));
+}
+
+.action-stage-list {
+  display: grid;
+  gap: 7px;
+}
+
+.action-stage {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.action-stage span {
+  color: var(--dim);
+  font-family:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.action-stage.active {
+  border-color: rgba(68, 217, 230, 0.46);
+  color: var(--text);
+}
+
+.action-stage.active span {
+  color: var(--cyan);
+}
+
+.action-stage.done {
+  border-color: rgba(168, 255, 99, 0.24);
+  color: var(--text);
+}
+
+.action-stage.done span {
+  color: var(--lime);
+}
+
 .call-panel {
   display: grid;
   gap: 10px;
+}
+
+.call-panel.compact {
+  gap: 7px;
 }
 
 .call-line {
@@ -544,6 +712,20 @@ button:disabled {
   font-family:
     "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.72rem;
+}
+
+.action-complete-banner {
+  align-items: end;
+  border: 1px solid rgba(168, 255, 99, 0.38);
+  border-radius: 8px;
+  padding: 12px;
+  background: rgba(168, 255, 99, 0.08);
+}
+
+.action-complete-banner strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--lime);
 }
 
 .svg-highlight {
@@ -587,5 +769,19 @@ button:disabled {
 
   .satellite-panel {
     min-height: 280px;
+  }
+
+  .autonomous-stats,
+  .dispatch-head,
+  .dispatch-route,
+  .action-complete-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .dispatch-head,
+  .dispatch-route,
+  .action-complete-banner {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
