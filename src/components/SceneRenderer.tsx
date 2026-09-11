@@ -339,26 +339,26 @@ export function SceneRenderer({
     <svg viewBox="0 0 640 420" role="img" aria-label="Satellite interpretation scene">
       <defs>
         <linearGradient id="terrain-fill" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stopColor="#09151a" />
-          <stop offset="54%" stopColor="#0d1917" />
-          <stop offset="100%" stopColor="#111720" />
+          <stop offset="0%" stopColor="#eef4f2" />
+          <stop offset="54%" stopColor="#e6efec" />
+          <stop offset="100%" stopColor="#edf0f5" />
         </linearGradient>
         <linearGradient id="road-fill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#354047" />
-          <stop offset="52%" stopColor="#20292f" />
-          <stop offset="100%" stopColor="#151d22" />
+          <stop offset="0%" stopColor="#aeb8bf" />
+          <stop offset="52%" stopColor="#87939b" />
+          <stop offset="100%" stopColor="#6f7b84" />
         </linearGradient>
         <linearGradient id="water-fill" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stopColor="#123642" />
-          <stop offset="100%" stopColor="#1f6375" />
+          <stop offset="0%" stopColor="#9ad7e7" />
+          <stop offset="100%" stopColor="#3d94b0" />
         </linearGradient>
         <linearGradient id="water-hazard" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stopColor="#1b5260" />
-          <stop offset="100%" stopColor="#2a8792" />
+          <stop offset="0%" stopColor="#6cc8da" />
+          <stop offset="100%" stopColor="#14809a" />
         </linearGradient>
         <linearGradient id="roof-fill" x1="0" x2="1" y1="0" y2="1">
-          <stop offset="0%" stopColor="#5c6a71" />
-          <stop offset="100%" stopColor="#303c44" />
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#b9c2c8" />
         </linearGradient>
         <radialGradient id="cloud-fill">
           <stop offset="0%" stopColor="#ffffff" />
@@ -388,24 +388,24 @@ export function SceneRenderer({
       <rect width="640" height="420" fill="url(#terrain-fill)" />
       <path
         d="M 0 86 C 110 62, 142 124, 248 92 C 358 58, 420 112, 640 68"
-        stroke="#62e68f"
+        stroke="#278a55"
         strokeWidth="22"
-        opacity="0.04"
+        opacity="0.08"
         fill="none"
       />
       <path
         d="M 0 360 C 118 312, 210 390, 340 338 C 456 292, 510 348, 640 314"
-        stroke="#44d9e6"
+        stroke="#0077c8"
         strokeWidth="18"
-        opacity="0.035"
+        opacity="0.06"
         fill="none"
       />
-      <g opacity="0.18">
+      <g opacity="0.2">
         {Array.from({ length: 14 }, (_, index) => (
-          <path key={`h-${index}`} d={`M 0 ${index * 32} H 640`} stroke="#44d9e6" />
+          <path key={`h-${index}`} d={`M 0 ${index * 32} H 640`} stroke="#6e8da0" />
         ))}
         {Array.from({ length: 20 }, (_, index) => (
-          <path key={`v-${index}`} d={`M ${index * 32} 0 V 420`} stroke="#44d9e6" />
+          <path key={`v-${index}`} d={`M ${index * 32} 0 V 420`} stroke="#6e8da0" />
         ))}
       </g>
       {objects.map((object) => (

@@ -49,7 +49,7 @@ export function MissionHeader({
           Reset evolution
         </button>
         <div className="metric">
-          <div className="metric-label">Evolution engine</div>
+          <div className="metric-label">Decision driver</div>
           <div className="metric-value">{engineLabel}</div>
         </div>
       </div>

@@ -21,7 +21,7 @@ Use this walkthrough when showing EYEVOLVE to a reviewer.
 4. Click **Reset evolution** so the demo begins at Generation 1.
 
 If no key is configured, the app still runs. The header will indicate the local
-evolution engine instead of AI-assisted evolution.
+policy engine instead of AI-driven policy.
 
 ## 60-90 Second Script
 

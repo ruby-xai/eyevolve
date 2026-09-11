@@ -9,7 +9,7 @@ Implemented:
 
 - Next.js App Router app.
 - SVG satellite-style scene renderer.
-- Six predefined data-driven scenes.
+- Ten predefined data-driven scenes.
 - Tile acquisition animation.
 - Human ranking and intervention controls.
 - Attention and action learning.
@@ -17,7 +17,7 @@ Implemented:
 - Bounded policy deltas and deterministic fallback.
 - Uncertainty-driven next-scene selection.
 - Autonomy-driven UI modes.
-- Evolution transition, policy inspector, activity trace, and history.
+- Evolution transition, activity trace, compact evolution log, and history.
 - Simulated dispatch call.
 
 Intentionally not implemented:

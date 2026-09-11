@@ -19,7 +19,7 @@ observation.
 - Confidence, agreement, uncertainty, and autonomy visibly change.
 - Higher autonomy changes the UI from manual controls to exception management.
 - At high autonomy, EYEVOLVE performs a clearly simulated dispatch action.
-- The evolution log and policy inspector make the loop inspectable.
+- The transition screens and compact evolution log make the loop inspectable.
 - The evolved session persists in browser `localStorage`.
 
 ## Why This Counts as Evolution

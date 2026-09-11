@@ -82,9 +82,9 @@ If OpenAI is unavailable, the local evolution engine continues the same loop.
 
 ## Design Direction
 
-The visual language is mission-control satellite intelligence: dark background,
-thin borders, subtle map grid, compact telemetry, restrained animation, and
-clear hazard colors. The interface should feel like a serious future geospatial
+The visual language is light mission-control minimalism: bright surfaces, thin
+borders, subtle map grid, compact telemetry, restrained animation, and clear
+hazard colors. The interface should feel like a serious future geospatial
 product rather than a game.
 
 ## What Comes Next

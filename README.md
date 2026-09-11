@@ -15,7 +15,7 @@ EYEVOLVE implements an autocatalytic loop:
 1. **Observe** a before/after satellite-style scene.
 2. **Measure** human ranking and intervention choices.
 3. **Learn** separate attention and actionability policies.
-4. **Judge** with OpenAI-assisted bounded evolution proposals when available.
+4. **Judge** with OpenAI-driven bounded evolution proposals when available.
 5. **Evolve** confidence, uncertainty, autonomy, UI mode, and next-scenario choice.
 6. **Persist** the evolved state in browser `localStorage`.
 

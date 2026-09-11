@@ -52,10 +52,10 @@ export function SimulatedCall({
       return;
     }
 
-    const initialDelay = visibleLines === 0 ? 700 : 0;
+    const initialDelay = visibleLines === 0 ? 1100 : 0;
     const timeout = window.setTimeout(() => {
       setVisibleLines((current) => Math.min(totalLines, current + 1));
-    }, initialDelay || 1120);
+    }, initialDelay || 1550);
 
     return () => window.clearTimeout(timeout);
   }, [isComplete, paused, totalLines, visibleLines]);

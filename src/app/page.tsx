@@ -7,7 +7,6 @@ import { EvolutionTransition } from "@/components/EvolutionTransition";
 import { IntelligencePanel } from "@/components/IntelligencePanel";
 import { MissionHeader } from "@/components/MissionHeader";
 import { ObservationWorkspace } from "@/components/ObservationWorkspace";
-import { PolicyInspector } from "@/components/PolicyInspector";
 import { getScene } from "@/lib/scenes";
 import { calculateAutonomy, modeFromAutonomy } from "@/lib/autonomy";
 import {
@@ -126,11 +125,15 @@ export default function Home() {
   const [transitionEvent, setTransitionEvent] = useState<EvolutionEvent | null>(
     null,
   );
-  const [engineLabel, setEngineLabel] = useState("LOCAL EVOLUTION ENGINE");
+  const [engineLabel, setEngineLabel] = useState("LOCAL POLICY ENGINE");
 
   useEffect(() => {
     const loaded = loadState();
+    const latestEngine = loaded.evolutionHistory.at(-1)?.engine;
     setState(loaded);
+    setEngineLabel(
+      latestEngine === "openai" ? "AI-DRIVEN POLICY" : "LOCAL POLICY ENGINE",
+    );
     setHydrated(true);
   }, []);
 
@@ -202,7 +205,7 @@ export default function Home() {
     const fresh = createInitialState();
     setState(fresh);
     setTransitionEvent(null);
-    setEngineLabel("LOCAL EVOLUTION ENGINE");
+    setEngineLabel("LOCAL POLICY ENGINE");
   };
 
   const summarizeEvent = (
@@ -327,8 +330,8 @@ export default function Home() {
     setTransitionEvent(event);
     setEngineLabel(
       response.engine === "openai"
-        ? "AI-ASSISTED EVOLUTION"
-        : "LOCAL EVOLUTION ENGINE",
+        ? "AI-DRIVEN POLICY"
+        : "LOCAL POLICY ENGINE",
     );
     setIsCorrecting(false);
     setIsEvolving(false);
@@ -412,8 +415,10 @@ export default function Home() {
             scores={scores}
             isEvolving={isEvolving}
           />
-          <PolicyInspector policy={state.policy} />
-          <EvolutionHistory events={state.evolutionHistory} />
+          <details className="evolution-details">
+            <summary>Evolution log</summary>
+            <EvolutionHistory events={state.evolutionHistory} />
+          </details>
         </aside>
       </section>
 

@@ -51,7 +51,7 @@ export function EvolutionTransition({
         <h2>Policy evolved after {event.sceneTitle}</h2>
         <p className="mode-copy">
           {event.after.judgmentsObserved} human/AI judgments observed. Evolution
-          engine: {event.engine === "openai" ? "OpenAI-assisted" : "Local fallback"}.
+          driver: {event.engine === "openai" ? "AI-driven policy" : "Local policy engine"}.
         </p>
 
         <div className="transition-grid">
